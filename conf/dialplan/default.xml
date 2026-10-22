@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dialplan for authenticated extensions (context "default").
+
+  How the XML dialplan works:
+   * extensions are evaluated top to bottom; the first one whose conditions
+     all match wins unless it has continue="true";
+   * $1..$9 are regex captures of the condition, ${var} is expanded when the
+     action runs, $${var} is a global variable expanded at load time;
+   * anti-actions run when their condition does not match.
+-->
+<include>
+  <context name="default">
+
+    <!-- Tag every call so CDRs and logs can tell them apart. -->
+    <extension name="call_setup" continue="true">
+      <condition field="destination_number" expression="^.+$">
+        <action application="set" data="call_start_context=default"/>
+      </condition>
+    </extension>
+
+    <!-- 9196: echo test. Speak and hear yourself back. -->
+    <extension name="echo">
+      <condition field="destination_number" expression="^9196$">
+        <action application="answer"/>
+        <action application="playback" data="tone_stream://$${beep}"/>
+        <action application="echo"/>
+      </condition>
+    </extension>
+
+    <!-- 9197: 1004 Hz milliwatt reference tone. -->
+    <extension name="milliwatt">
+      <condition field="destination_number" expression="^9197$">
+        <action application="answer"/>
+        <action application="playback" data="tone_stream://%(10000,0,1004);loops=-1"/>
+      </condition>
+    </extension>
+
+    <!-- 9198: record a message then play it back. -->
+    <extension name="record_test">
+      <condition field="destination_number" expression="^9198$">
+        <action application="answer"/>
+        <action application="playback" data="tone_stream://$${beep}"/>
+        <action application="record" data="${recordings_dir}/test-${uuid}.wav 20"/>
+        <action application="playback" data="${recordings_dir}/test-${uuid}.wav"/>
+        <action application="hangup"/>
+      </condition>
+    </extension>
+
+    <!-- 5000: demo IVR. 1 = echo test, 2 = milliwatt, 3 = extension 1000. -->
+    <extension name="ivr_demo">
+      <condition field="destination_number" expression="^5000$">
+        <action application="answer"/>
+        <action application="play_and_get_digits" data="1 1 3 5000 # tone_stream://%(200,100,600);%(200,100,800) tone_stream://$${busy};loops=1 ivr_choice ^[123]$"/>
+        <action application="transfer" data="ivr-${ivr_choice}"/>
+      </condition>
+    </extension>
+    <extension name="ivr_routes">
+      <condition field="destination_number" expression="^ivr-1$">
+        <action application="transfer" data="9196"/>
+      </condition>
+    </extension>
+    <extension name="ivr_route_2">
+      <condition field="destination_number" expression="^ivr-2$">
+        <action application="transfer" data="9197"/>
+      </condition>
+    </extension>
+    <extension name="ivr_route_3">
+      <condition field="destination_number" expression="^ivr-3$">
+        <action application="transfer" data="1000"/>
+      </condition>
+    </extension>
+    <extension name="ivr_invalid">
+      <condition field="destination_number" expression="^ivr-$">
+        <action application="playback" data="tone_stream://$${busy};loops=2"/>
+        <action application="hangup"/>
+      </condition>
+    </extension>
+
+    <!-- 2000: ring group - rings 1000 and 1001 at the same time. -->
+    <extension name="ring_group_sales">
+      <condition field="destination_number" expression="^2000$">
+        <action application="set" data="call_timeout=25"/>
+        <action application="bridge" data="user/1000,user/1001"/>
+      </condition>
+    </extension>
+
+    <!-- 2001: hunt group - 1000 first, then 1001 if no answer. -->
+    <extension name="hunt_group_support">
+      <condition field="destination_number" expression="^2001$">
+        <action application="bridge" data="[leg_timeout=15]user/1000|[leg_timeout=15]user/1001"/>
+      </condition>
+    </extension>
+
+    <!-- Extension to extension calls: 1000-1099. -->
+    <extension name="local_extensions">
+      <condition field="destination_number" expression="^(10[0-9][0-9])$">
+        <action application="set" data="call_timeout=30"/>
+        <action application="set" data="continue_on_fail=true"/>
+        <action application="bridge" data="user/$1"/>
+        <!-- Reached only when the bridge failed (busy / no answer / offline). -->
+        <action application="answer"/>
+        <action application="playback" data="tone_stream://$${busy};loops=3"/>
+        <action application="hangup" data="${originate_disposition}"/>
+      </condition>
+    </extension>
+
+    <!-- Outbound via a SIP trunk: dial 9 + number. Enable a gateway first.
+    <extension name="outbound_pstn">
+      <condition field="destination_number" expression="^9(\d{7,15})$">
+        <action application="bridge" data="gateway/carrier/$1"/>
+      </condition>
+    </extension>
+    -->
+
+    <!-- Business hours example (Mon-Fri 09:00-17:59).
+    <extension name="office_hours">
+      <condition field="destination_number" expression="^0$"/>
+      <condition wday="mon-fri" time-of-day="09:00-17:59">
+        <action application="transfer" data="2000"/>
+        <anti-action application="transfer" data="9197"/>
+      </condition>
+    </extension>
+    -->
+  </context>
+</include>

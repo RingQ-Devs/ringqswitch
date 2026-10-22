@@ -1,0 +1,6 @@
+/bin/
+/log/
+/recordings/
+*.test
+*.out
+/dist/

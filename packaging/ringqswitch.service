@@ -1,0 +1,26 @@
+[Unit]
+Description=RingQswitch PBX
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ringq
+Group=ringq
+ExecStartPre=/usr/local/bin/ringqswitch -conf /etc/ringqswitch -check
+ExecStart=/usr/local/bin/ringqswitch -conf /etc/ringqswitch
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=2
+LimitNOFILE=65536
+# packaging/install.sh rewrites the sample's relative paths (../log,
+# ../recordings, ../sounds) to /var/lib/ringqswitch, the only writable path.
+WorkingDirectory=/var/lib/ringqswitch
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/ringqswitch
+
+[Install]
+WantedBy=multi-user.target

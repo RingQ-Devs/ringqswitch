@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  RingQswitch configuration for a RingQ server: RingQswitch runs on the
+  same machine as the portal and uses the same PostgreSQL database.
+
+  Install it as /etc/ringqswitch/ringqswitch.xml, fill in the values marked
+  CHANGE, then:  ringqswitch -conf /etc/ringqswitch -check
+  docs/DATABASE.md explains every step (stopping the previous switch, ports,
+  recordings, CDR tables, rollback).
+-->
+<configuration>
+  <vars>
+    <!-- Used only for phones that register with an IP address when the
+         database has several domains; see default-domain below. -->
+    <var name="domain" value="$${local_ip_v4}"/>
+    <var name="us-ring" value="%(2000,4000,440,480)"/>
+    <var name="busy" value="%(500,500,480,620)"/>
+  </vars>
+
+  <settings>
+    <param name="log-level" value="info"/>
+    <param name="sip-trace" value="false"/>
+
+    <!-- The standard SIP port (the "internal" profile) and RTP range. -->
+    <param name="sip-ip" value="auto"/>
+    <param name="sip-port" value="5060"/>
+    <param name="enable-tcp" value="true"/>
+    <param name="rtp-ip" value="auto"/>
+    <param name="rtp-start-port" value="16384"/>
+    <param name="rtp-end-port" value="32768"/>
+    <!-- Behind NAT (most cloud servers): the public address. Not needed when
+         the public IP is on the network interface (many VPS). -->
+    <param name="ext-sip-ip" value=""/>
+    <param name="ext-rtp-ip" value=""/>
+    <param name="rtp-timeout" value="120"/>
+    <param name="codec-prefs" value="PCMU,PCMA"/>
+
+    <param name="domain" value="$${domain}"/>
+    <param name="auth-calls" value="true"/>
+    <param name="auth-fail-threshold" value="10"/>
+    <param name="auth-fail-window" value="60"/>
+    <param name="auth-block-seconds" value="600"/>
+    <param name="min-register-expires" value="60"/>
+    <param name="max-register-expires" value="3600"/>
+    <param name="default-register-expires" value="3600"/>
+    <param name="max-sessions" value="1000"/>
+    <param name="call-timeout" value="60"/>
+
+    <!-- Event socket: your RingQ backend connects here, with the same
+         commands and events as before. CHANGE the password to the one the
+         backend uses. Keep it on 127.0.0.1 unless the
+         backend runs on another machine (then firewall the port). -->
+    <param name="event-socket-listen" value="127.0.0.1:8021"/>
+    <param name="event-socket-password" value="ClueCon"/>
+
+    <!-- CDRs go to the database; no CSV. -->
+    <param name="cdr-csv" value=""/>
+    <!-- Where the RingQ server keeps prompts and recordings, so the portal finds
+         new recordings where it always did. -->
+    <param name="sounds-dir" value="/usr/share/freeswitch/sounds"/>
+    <param name="recordings-dir" value="/var/lib/freeswitch/recordings"/>
+    <!-- Voicemail messages (msg_<uuid>.wav per box) and limits. -->
+    <param name="voicemail-dir" value="/var/lib/ringqswitch/voicemail"/>
+    <!-- Faxes sent and received (eFax). -->
+    <param name="fax-dir" value="/var/lib/ringqswitch/fax"/>
+    <!-- Call transcription (web interface → Settings → Call transcription;
+         packaging/install-transcription.sh installs the recogniser). Found
+         by itself in /usr/local/bin and /usr/local/share/ringqswitch/speech. -->
+    <!-- <param name="transcribe-command" value="/usr/local/bin/rq-speech"/> -->
+    <!-- <param name="transcribe-model" value="/usr/local/share/ringqswitch/speech/ggml-small.bin"/> -->
+    <!-- <param name="transcribe-threads" value="4"/> -->      <!-- CPU threads per call (default: half the CPUs, at most 4) -->
+    <!-- <param name="transcribe-workers" value="1"/> -->      <!-- calls transcribed at the same time -->
+    <!-- <param name="transcribe-min-seconds" value="5"/> -->  <!-- shorter calls (billsec) are not transcribed -->
+    <!-- Where Settings → Call transcription downloads speech models from
+         (default: the speech model library on the internet; a mirror
+         holding the same ggml-<model>.bin files works too). -->
+    <!-- <param name="transcribe-model-url" value="https://models.example.com/speech"/> -->
+    <!-- Live transcription during calls (Settings → Call transcription):
+         RingQswitch starts rq-speech-server (installed next to rq-speech)
+         on 127.0.0.1 when a call is first written down live. To use a
+         live recogniser started elsewhere instead, give its address. -->
+    <!-- <param name="transcribe-live-url" value="http://127.0.0.1:8178"/> -->
+    <param name="voicemail-max-seconds" value="180"/>
+    <!-- Seconds a parked call (*59xx) waits before ringing back. -->
+    <param name="park-timeout" value="120"/>
+  </settings>
+
+  <database>
+    <!-- CHANGE: the RingQ database (the values in the portal's config.conf). -->
+    <param name="dsn" value="postgres://DBUSER:PASSWORD@127.0.0.1:5432/DBNAME?sslmode=disable"/>
+    <!-- Tables CDRs are inserted into (comma separated). q_ringq_cdr has
+         the v_xml_cdr columns; add it if nothing else fills it. -->
+    <param name="cdr-tables" value="v_xml_cdr"/>
+    <param name="cdr-b-leg" value="false"/>
+    <!-- Mirror live state into the registrations, channels and calls tables. -->
+    <param name="write-registrations" value="true"/>
+    <param name="write-channels" value="true"/>
+    <!-- Seconds between checks for configuration changes (0 = only on
+         reloadxml / memcache flush / SIGHUP). -->
+    <param name="poll-seconds" value="10"/>
+    <!-- Host name used for v_gateways/v_dialplans/v_vars hostname filters and
+         written to the registrations/channels tables. Default: system name. -->
+    <!-- <param name="hostname" value="ringq1"/> -->
+    <!-- Phones configured with the server IP instead of a domain register to
+         this domain. Not needed when the database has a single domain. -->
+    <!-- <param name="default-domain" value="pbx.example.com"/> -->
+    <!-- Create RingQswitch's own rq_* tables (AUX codes, agent status log,
+         queue call log, outbound routes, office hours) when missing. -->
+    <param name="manage-schema" value="true"/>
+    <!-- Other database users that may read and change RingQswitch's tables
+         (e.g. the user a database tool signs in with). The database owner and the
+         owner of v_domains always may. -->
+    <!-- <param name="grant-to" value="ringq"/> -->
+  </database>
+
+  <!-- The RingQswitch web interface: gateways, DIDs, extensions, queues,
+       agents and AUX codes, IVRs, live call centre, reports and logs.
+       Open https://<server address>:8443/ (accept the certificate warning
+       once) and sign in with admin-user / admin-password. -->
+  <web>
+    <!-- Empty = off. 0.0.0.0:8443 = all addresses (allow 8443/tcp in the
+         firewall, ideally only from your office IP). -->
+    <param name="listen" value=""/>
+    <param name="admin-user" value="admin"/>
+    <!-- CHANGE: at least 8 characters. -->
+    <param name="admin-password" value=""/>
+    <!-- self-signed (made on first start), off (plain http, only behind a
+         proxy), or "/path/fullchain.pem,/path/privkey.pem" (a free
+         certificate: packaging/use-certificate.sh sets it up; renewals are picked up
+         without a restart). -->
+    <param name="tls" value="self-signed"/>
+    <param name="data-dir" value="/var/lib/ringqswitch"/>
+    <param name="brand" value="RingQswitch"/>
+    <!-- UDP port of the browser dialer's and the meetings' audio/video
+         (allow it in the firewall; 0 = no dialer and no meetings). Where
+         UDP is blocked, browsers fall back to TCP on the web port. -->
+    <param name="webrtc-port" value="8443"/>
+    <!-- Behind NAT (most cloud servers): the public address browsers reach.
+         Default: ext-rtp-ip, else the server's own addresses. -->
+    <param name="public-ip" value=""/>
+    <!-- Extension owners may use the server pages (Security, System,
+         Domains, event log). Set false when several companies (domains)
+         share this server. -->
+    <param name="owner-server-access" value="true"/>
+  </web>
+
+  <gateways/>
+  <acl>
+    <!-- Carriers that send calls without registering are trusted through
+         the portal's "providers" access control list; add others here. -->
+  </acl>
+</configuration>

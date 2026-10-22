@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Context "public": unauthenticated calls from gateways and trusted ACL
+  networks. Only route DIDs you own here - never bridge to gateways from
+  this context or you will run an open relay.
+-->
+<include>
+  <context name="public">
+    <!-- Example DID routing: +1 555 010 0100 rings extension 1000. -->
+    <extension name="did_main">
+      <condition field="destination_number" expression="^\+?1?5550100100$">
+        <action application="transfer" data="1000 default"/>
+      </condition>
+    </extension>
+
+    <extension name="unrouted">
+      <condition field="destination_number" expression="^.*$">
+        <action application="log" data="WARN unrouted public call to ${destination_number} from ${network_addr}"/>
+        <action application="hangup" data="UNALLOCATED_NUMBER"/>
+      </condition>
+    </extension>
+  </context>
+</include>

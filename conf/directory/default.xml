@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Extensions. Each <user> can register and place calls.
+  params:    password (or a1-hash = md5(id:domain:password))
+  variables: copied onto every call the user makes.
+    user_context                 dialplan context for their calls (default "default")
+    effective_caller_id_name     caller ID shown to the called party
+    effective_caller_id_number
+-->
+<include>
+  <user id="1000">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables>
+      <variable name="user_context" value="default"/>
+      <variable name="effective_caller_id_name" value="Extension 1000"/>
+      <variable name="effective_caller_id_number" value="1000"/>
+    </variables>
+  </user>
+  <user id="1001">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables>
+      <variable name="user_context" value="default"/>
+      <variable name="effective_caller_id_name" value="Extension 1001"/>
+      <variable name="effective_caller_id_number" value="1001"/>
+    </variables>
+  </user>
+  <user id="1002">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables>
+      <variable name="user_context" value="default"/>
+      <variable name="effective_caller_id_name" value="Extension 1002"/>
+      <variable name="effective_caller_id_number" value="1002"/>
+    </variables>
+  </user>
+  <user id="1003">
+    <params><param name="password" value="$${default_password}"/></params>
+    <variables>
+      <variable name="user_context" value="default"/>
+      <variable name="effective_caller_id_name" value="Extension 1003"/>
+      <variable name="effective_caller_id_number" value="1003"/>
+    </variables>
+  </user>
+</include>
