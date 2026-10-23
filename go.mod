@@ -1,6 +1,6 @@
 module github.com/Cal4Care-Developers/RingQswitch
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/gorilla/websocket v1.5.3
@@ -10,7 +10,7 @@ require (
 	github.com/pion/interceptor v0.1.49
 	github.com/pion/rtcp v1.2.18
 	github.com/pion/webrtc/v4 v4.2.22
-	golang.org/x/net v0.50.0
+	golang.org/x/net v0.54.0
 )
 
 require (
@@ -31,9 +31,9 @@ require (
 	github.com/pion/transport/v5 v5.1.1 // indirect
 	github.com/pion/turn/v5 v5.1.2 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 )
